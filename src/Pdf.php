@@ -49,19 +49,18 @@ class Pdf extends TCPDF {
                 }
 
                 $this->checkOverflow = false;
+                $pdf->SetY(0);
                 $pageHeader = $pdf->getAncestor('pageHeader');
                 if($pageHeader != null) {
-                    $pdf->SetY(0);
                     $pageHeader['callback']($this);
                 }
 
+                $pdf->SetY($pdf->getPageHeight() - (is_numeric($args['margins']) ? $args['margins'] : $args['margins'][3]));
                 $pageFooter = $pdf->getAncestor('pageFooter');
                 if($pageFooter != null) {
-                    $pdf->SetY(
-                        $pdf->getPageHeight() - (is_numeric($args['margins']) ? $args['margins'] : $args['margins'][3])
-                    );
                     $pageFooter['callback']($this);
                 }
+
                 $pdf->SetY(is_numeric($args['margins']) ? $args['margins'] : $args['margins'][1]);
                 $this->checkOverflow = true;
             }
@@ -96,6 +95,46 @@ class Pdf extends TCPDF {
             'type' => 'pageEnd',
             'callback' => function($pdf) {
                 $pdf->endPage(false);
+            }
+        ];
+    }
+
+    function masterHeader($callback) {
+        $this->callbacks[] = [
+            'type' => 'masterHeader',
+            'autoCall' => true,
+            'callback' => $callback
+        ];
+    }
+
+    function masterFooter($callback) {
+        $this->callbacks[] = [
+            'type' => 'masterFooter',
+            'autoCall' => true,
+            'callback' => $callback
+        ];
+    }
+
+    function printAutoCall($name) {
+        $this->checkOverflow = false;
+        $ancestor = $this->getAncestor($name);
+        if($ancestor != null) {
+            $ancestor['callback']($this);
+        }
+        $this->checkOverflow = true;
+    }
+
+    function masterData($name, $callback) {
+        $this->callbacks[] = [
+            'type' => 'masterData',
+            'args' => ['dataset' => $name],
+            'callback' => function($pdf, $args) use ($callback) {
+                $dataset = $pdf->getVariable($args['dataset']);
+                $this->printAutoCall('masterHeader');
+                foreach($dataset as $index => $row) {
+                    $callback($pdf, $row, $index);
+                }
+                $this->printAutoCall('masterFooter');
             }
         ];
     }
@@ -154,9 +193,18 @@ class Pdf extends TCPDF {
 
         if($this->checkOverflow == true) {
             $isOverflow = false;
-            $currentPage = $this->getAncestor('pageStart');
-            $margins = $currentPage['args']['margins'];
+            $pageStart = $this->getAncestor('pageStart');
+            $margins = $pageStart['args']['margins'];
             $max = $this->getPageHeight() - (is_numeric($margins) ? $margins : $margins[3]);
+
+            if($this->getCurrentAncestor()['type'] == 'masterData') {
+                $this->startTransaction();
+                $y = $this->GetY();
+                $this->printAutoCall('masterFooter');
+                $cellHeight = $this->GetY() - $y;
+                $this->rollbackTransaction(true);
+                $max -= $cellHeight;
+            }
 
             $this->startTransaction();
             $y = $this->GetY();
@@ -166,7 +214,9 @@ class Pdf extends TCPDF {
 
             $isOverflow = $this->GetY() + $cellHeight > $max;
             if($isOverflow == true) {
-                $currentPage['callback']($this, $currentPage['args']);
+                $this->printAutoCall('masterFooter');
+                $pageStart['callback']($this, $pageStart['args']);
+                $this->printAutoCall('masterHeader');
             }
         }
 
