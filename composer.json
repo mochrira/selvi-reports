@@ -15,5 +15,10 @@
         "psr-4": {
             "Selvi\\": "src/"
         }
+    },
+    "scripts": {
+        "post-install-cmd": [
+            "php vendor/tecnickcom/tcpdf/tools/tcpdf_addfont.php -i vendor/mochrira/selvi-pdf/src/fonts/calibri/calibri.ttf"
+        ]
     }
 }
