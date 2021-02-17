@@ -1,7 +1,7 @@
 <?php 
 
 namespace Selvi;
-use TCPDF;
+use TCPDF; 
 
 class Pdf extends TCPDF {
 
@@ -24,8 +24,48 @@ class Pdf extends TCPDF {
         parent::__construct($args['orientation'], $args['units'], $args['pageSize']);
     }
 
+    private $defaultFontSettings = ['family' => 'helvetica', 'style' => '', 'size' => 12];
+
+    function SetDefaultFontSettings() {
+        $opt = $this->defaultFontSettings;
+        $this->SetFont($opt['family'], $opt['style'], $opt['size']);
+    }
+
+    function SetFontSettings($args = []) {
+        $default = $this->defaultFontSettings;
+        $opt = array_merge($default, $args);
+        $this->SetFont($opt['family'], $opt['style'], $opt['size']);
+    }
+
+    private $defaultCellPadding = [0.05, 0.025];
+
+    function SetDefaultCellPaddingSettings() {
+        $top = $this->defaultCellPadding[1]; $bottom = $this->defaultCellPadding[1];
+        $left = $this->defaultCellPadding[0]; $right = $this->defaultCellPadding[0];
+        $this->SetCellPaddings($left, $top, $right, $bottom);
+    }
+
+    function SetCellPaddingSettings($padding) {
+        $top = $this->defaultCellPadding[1]; $bottom = $this->defaultCellPadding[1];
+        $left = $this->defaultCellPadding[0]; $right = $this->defaultCellPadding[0];
+        if(is_numeric($padding)) {
+            $top = $padding; $bottom = $padding; $left = $padding; $right = $padding;
+        }
+        if(is_array($padding)) {
+            if(count($padding) == 2) {
+                $left = $padding[0]; $right = $padding[0];
+                $top = $padding[1]; $bottom = $padding[1];
+            }
+            if(count($padding) == 4) {
+                $left = $padding[0]; $right = $padding[2];
+                $top = $padding[1]; $bottom = $padding[3];
+            }
+        }
+        $this->SetCellPaddings($left, $top, $right, $bottom);
+    }
+
     function pageStart($args = []) {
-        $default = ['pageSize' => 'A4', 'orientation' => 'P', 'units' => 'in', 'margins' => 0.5];
+        $default = ['pageSize' => 'A4', 'orientation' => 'P', 'units' => 'in', 'margins' => .5];
         $args = array_merge($default, $args);
 
         $this->callbacks[] = [
@@ -37,6 +77,7 @@ class Pdf extends TCPDF {
                     $pdf->SetPrintHeader(false);
                     $pdf->SetPrintFooter(false);
                     $pdf->SetAutoPageBreak(false);
+                    $pdf->SetDefaultFontSettings();
                     $pdf->hasInit = true;
                 }
                 $pdf->AddPage($args['orientation'], $args['pageSize']);
@@ -191,6 +232,14 @@ class Pdf extends TCPDF {
         $colAlign = $options['colAlign'];
         $stretch = $options['stretch'];
 
+        if(isset($options['font'])) {
+            $this->SetFontSettings($options['font']);
+        }
+
+        if(isset($options['padding'])) {
+            $this->SetCellPaddingSettings($options['padding']);
+        }
+
         if($this->checkOverflow == true) {
             $isOverflow = false;
             $pageStart = $this->getAncestor('pageStart');
@@ -221,6 +270,8 @@ class Pdf extends TCPDF {
         }
 
         $this->Cell($w, $h, $txt, $border, $break ? 1 : 0, $align, 0, '', $stretch, false, $colAlign, $valign);
+        $this->SetDefaultFontSettings();
+        $this->SetDefaultCellPaddingSettings();
     }
 
 }
