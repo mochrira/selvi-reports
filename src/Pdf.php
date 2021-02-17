@@ -5,12 +5,6 @@ use TCPDF;
 
 class Pdf extends TCPDF {
 
-    private $width = 0;
-    private $height = 0;
-
-    private $marginTop = 0;
-    private $marginBottom = 0;
-
     private $variables = [];
 
     function setVariable($name, $value) {
@@ -21,107 +15,162 @@ class Pdf extends TCPDF {
         return $this->variables[$name];
     }
 
-    function __construct($pageSize, $orientation = 'potrait', $margins = .5) {
-        $this->width = $pageSize[0];
-        $this->height = $pageSize[1];
-        parent::__construct($orientation == 'potrait' ? 'P' : 'L', 'in', $pageSize);
-        $this->SetPrintHeader(false);
-        $this->SetAutoPageBreak(false);
-        if(is_numeric($margins)) {
-            $this->SetMargins($margins, $margins, $margins, false);
-            $this->marginTop = $margins;
-            $this->marginBottom = $margins;
-        } else {
-            $this->SetMargins($margins[0], 0, $margins[1]);
-            $this->marginTop = $margins[1];
-            $this->marginBottom = $margins[3];
-        }
-    }
-
-    private $isPrintFooter = false;
-
-    function column($txt, $options = [], $break = false) {
-        $defaults = ['width' => 0, 'height' => 0, 'align' => 'L', 'border' => 'LTRB', 'valign' => 'C'];
-        $options = array_merge($defaults, $options);
-
-        $w = $options['width'];
-        $h = $options['h'];
-        $align = $options['align'];
-        $border = $options['border'];
-        $valign = $options['valign'];
-
-        $pageNo = $this->PageNo();
-
-        if(!$this->isPrintFooter) {
-            $this->startTransaction();
-            $y = $this->GetY();
-            $this->Cell($w, 0, $txt, $border, 1, $align, 1, '', 0, false, 'T', $valign);
-            $cellHeight = $this->GetY() - $y;
-            $this->rollbackTransaction(true);
-            $isOverflow = $this->GetY() + $cellHeight > ($this->height - $this->marginBottom);
-
-            if($pageNo == 0 || $isOverflow) {
-                $this->addPage();
-
-                $this->SetY(0);
-                $this->doCallback('pageHeader');
-
-                $this->SetY($this->height - $this->marginBottom);
-                $this->isPrintFooter = true;
-                $this->doCallback('pageFooter');
-                $this->isPrintFooter = false;
-
-                $this->SetY($this->marginTop);
-            }
-        }
-        
-        $this->Cell($w, $h, $txt, $border, $break ? 1 : 0, $align, 0, '', 0, false, 'T', $valign);
-    }
-
+    public $hasInit = false;
     private $callbacks = [];
 
+    function __construct() { }
+
+    function tcpdf($args) {
+        parent::__construct($args['orientation'], $args['units'], $args['pageSize']);
+    }
+
+    function pageStart($args = []) {
+        $default = ['pageSize' => 'A4', 'orientation' => 'P', 'units' => 'in', 'margins' => 0.5];
+        $args = array_merge($default, $args);
+
+        $this->callbacks[] = [
+            'type' => 'pageStart',
+            'args' => $args,
+            'callback' => function ($pdf, $args) {
+                if($pdf->hasInit == false) {
+                    $pdf->tcpdf($args);
+                    $pdf->SetPrintHeader(false);
+                    $pdf->SetPrintFooter(false);
+                    $pdf->SetAutoPageBreak(false);
+                    $pdf->hasInit = true;
+                }
+                $pdf->AddPage($args['orientation'], $args['pageSize']);
+
+                if(is_numeric($args['margins'])) {
+                    $pdf->SetMargins($args['margins'], 0, $args['margins'], false);
+                    $pdf->SetY($args['margins']);
+                } else {
+                    $pdf->SetMargins($args['margins'][0], 0, $args['margins'][2]);
+                }
+
+                $this->checkOverflow = false;
+                $pageHeader = $pdf->getAncestor('pageHeader');
+                if($pageHeader != null) {
+                    $pdf->SetY(0);
+                    $pageHeader['callback']($this);
+                }
+
+                $pageFooter = $pdf->getAncestor('pageFooter');
+                if($pageFooter != null) {
+                    $pdf->SetY(
+                        $pdf->getPageHeight() - (is_numeric($args['margins']) ? $args['margins'] : $args['margins'][3])
+                    );
+                    $pageFooter['callback']($this);
+                }
+                $pdf->SetY(is_numeric($args['margins']) ? $args['margins'] : $args['margins'][1]);
+                $this->checkOverflow = true;
+            }
+        ];
+    }
+
     function pageHeader($callback) {
-        $this->callbacks['pageHeader'][] = $callback;
+        $this->callbacks[] = [
+            'type' => 'pageHeader',
+            'autoCall' => true,
+            'callback' => $callback
+        ];
     }
 
-    function reportHeader($callback) {
-        $this->callbacks['reportHeader'][] = $callback;
-    }
-
-    function reportBody($callback) {
-        $this->callbacks['reportBody'][] = ['type' => 'body', 'callback' => $callback];
-    }
-
-    function reportFooter($callback) {
-        $this->callbacks['reportFooter'][] = $callback;
+    function pageBody($callback) {
+        $this->callbacks[] = [
+            'type' => 'pageBody',
+            'callback' => $callback
+        ];
     }
 
     function pageFooter($callback) {
-        $this->callbacks['pageFooter'][] = $callback;
+        $this->callbacks[] = [
+            'type' => 'pageFooter',
+            'autoCall' => true,
+            'callback' => $callback
+        ];
     }
 
-    function doCallback($name) {
-        if($this->callbacks[$name]) {
-            foreach($this->callbacks[$name] as $callback) {
-                if(is_callable($callback)) {
-                    $callback($this);
-                }
-
-                if(is_array($callback)) {
-                    if(is_callable($callback['callback'])) {
-                        $callback['callback']($this);
-                    }
-                }
+    function pageEnd() {
+        $this->callbacks[] = [
+            'type' => 'pageEnd',
+            'callback' => function($pdf) {
+                $pdf->endPage(false);
             }
+        ];
+    }
+
+    public $currentIndex = -1;
+
+    function getAncestor($type) {
+        $i = $this->currentIndex;
+        while($this->callbacks[$i]['type'] != 'pageStart') {$i--;}
+        $pageStartIndex = $i;
+        
+        $j = $this->currentIndex;
+        while($this->callbacks[$j]['type'] != 'pageEnd') {$j++;}
+        $pageEndIndex = $j;
+
+        $k = $i;
+        while($k < $j) { 
+            if($this->callbacks[$k]['type'] == $type) return $this->callbacks[$k];
+            $k++;
         }
+        return null;
+    }
+
+    function getCurrentAncestor() {
+        return $this->callbacks[$this->currentIndex];
     }
 
     function render($name = 'download.pdf') {
-        $this->doCallback('reportHeader');
-        $this->doCallback('reportBody');
-        $this->doCallback('reportFooter');
+        foreach($this->callbacks as $index => $cb) {
+            if(!isset($cb['autoCall']) || (isset($cb['autoCall']) && $cb['autoCall'] == false)) {
+                $this->currentIndex = $index;
+                if(isset($cb['args'])) {
+                    $cb['callback']($this, $cb['args']);
+                } else {
+                    $cb['callback']($this);
+                }
+            }
+        }
         $this->Output($name, 'I');
         die();
+    }
+
+    private $checkOverflow = true;
+
+    function column($txt, $options = [], $break = false) {
+        $defaults = ['width' => 0.0, 'height' => 0, 'align' => 'L', 'border' => 'LTRB', 'valign' => 'C', 'colAlign' => 'T', 'stretch' => 1];
+        $options = array_merge($defaults, $options);
+
+        $w = $options['width'];
+        $h = $options['height'];
+        $align = $options['align'];
+        $border = $options['border'];
+        $valign = $options['valign'];
+        $colAlign = $options['colAlign'];
+        $stretch = $options['stretch'];
+
+        if($this->checkOverflow == true) {
+            $isOverflow = false;
+            $currentPage = $this->getAncestor('pageStart');
+            $margins = $currentPage['args']['margins'];
+            $max = $this->getPageHeight() - (is_numeric($margins) ? $margins : $margins[3]);
+
+            $this->startTransaction();
+            $y = $this->GetY();
+            $this->Cell($w, $h, $txt, $border, 1, $align, 1, '', $stretch, false, $colAlign, $valign);
+            $cellHeight = $this->GetY() - $y;
+            $this->rollbackTransaction(true);
+
+            $isOverflow = $this->GetY() + $cellHeight > $max;
+            if($isOverflow == true) {
+                $currentPage['callback']($this, $currentPage['args']);
+            }
+        }
+
+        $this->Cell($w, $h, $txt, $border, $break ? 1 : 0, $align, 0, '', $stretch, false, $colAlign, $valign);
     }
 
 }
