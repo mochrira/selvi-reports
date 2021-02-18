@@ -1,9 +1,9 @@
 <?php 
 
-namespace App\Libraries;
+namespace Selvi;
 use TCPDF; 
 
-class Pdf3 extends TCPDF {
+class Pdf extends TCPDF {
 
     private $variables = [];
 
@@ -22,19 +22,35 @@ class Pdf3 extends TCPDF {
 
     function tcpdf($args) {
         parent::__construct($args['orientation'], $args['units'], $args['pageSize']);
+        $this->defaultLineWidth = $this->GetLineWidth();
     }
 
     private $defaultFontSettings = ['family' => 'helvetica', 'style' => '', 'size' => 12];
 
+    public $defaultLineWidth;
+    function SetDefaultLineStyle() {
+        $this->SetLineStyle([
+            'width' => $this->defaultLineWidth,
+            'join' => 'miter',
+            'cap' => 'butt',
+            'dash' => 0,
+            'color' => [0,0,0]
+        ]);
+    }
+
     function SetDefaultFontSettings() {
         $opt = $this->defaultFontSettings;
         $this->SetFont($opt['family'], $opt['style'], $opt['size']);
+        $this->SetTextColor(0,0,0);
     }
 
     function SetFontSettings($args = []) {
         $default = $this->defaultFontSettings;
         $opt = array_merge($default, $args);
         $this->SetFont($opt['family'], $opt['style'], $opt['size']);
+        if($args['color']) {
+            $this->SetTextColor(...$args['color']);
+        }
     }
 
     private $defaultCellPadding = [0.05, 0.025];
@@ -220,8 +236,34 @@ class Pdf3 extends TCPDF {
 
     private $checkOverflow = true;
 
+    function formatColumn($options = []) {
+        if(isset($options['font'])) {
+            $this->SetFontSettings($options['font']);
+        }
+        if(isset($options['padding'])) {
+            $this->SetCellPaddingSettings($options['padding']);
+        }
+        if(isset($options['borderStyle'])) {
+            $this->SetLineStyle($options['borderStyle']);
+        }
+    }
+
+    function formatColumnToDefault() {
+        $this->SetDefaultFontSettings();
+        $this->SetDefaultCellPaddingSettings();
+        $this->SetDefaultLineStyle();
+    }
+
     function column($txt, $options = [], $break = false) {
-        $defaults = ['width' => 0.0, 'height' => 0, 'align' => 'L', 'border' => 'LTRB', 'valign' => 'C', 'colAlign' => 'T', 'stretch' => 0];
+        $defaults = [
+            'width' => 0, 
+            'height' => 0, 
+            'align' => 'L', 
+            'border' => 'LTRB', 
+            'valign' => 'C', 
+            'colAlign' => 'T', 
+            'stretch' => 0
+        ];
         $options = array_merge($defaults, $options);
 
         $w = $options['width'];
@@ -234,16 +276,10 @@ class Pdf3 extends TCPDF {
 
         $this->startTransaction();
         $y = $this->GetY();
-        if(isset($options['font'])) {
-            $this->SetFontSettings($options['font']);
-        }
-        if(isset($options['padding'])) {
-            $this->SetCellPaddingSettings($options['padding']);
-        }
+        $this->formatColumn($options);
         $this->Cell($w, $h, $txt, $border, 1, $align, 1, '', $stretch, false, $colAlign, $valign);
         $cellHeight = $this->GetY() - $y;
-        $this->SetDefaultFontSettings();
-        $this->SetDefaultCellPaddingSettings();
+        $this->formatColumnToDefault();
         $this->rollbackTransaction(true);
 
         if($this->checkOverflow == true) {
@@ -280,15 +316,9 @@ class Pdf3 extends TCPDF {
         }
         $rectH = $cellHeight;
         $this->Rect($rectX, $rectY, $rectW, $rectH, 'CNZ');
-        if(isset($options['font'])) {
-            $this->SetFontSettings($options['font']);
-        }
-        if(isset($options['padding'])) {
-            $this->SetCellPaddingSettings($options['padding']);
-        }
+        $this->formatColumn($options);
         $this->Cell($w, $h, $txt, $border, $break ? 1 : 0, $align, 0, '', $stretch, false, $colAlign, $valign);
-        $this->SetDefaultFontSettings();
-        $this->SetDefaultCellPaddingSettings();
+        $this->formatColumnToDefault();
         $this->StopTransform();
     }
 
