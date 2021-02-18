@@ -221,7 +221,7 @@ class Pdf extends TCPDF {
     private $checkOverflow = true;
 
     function column($txt, $options = [], $break = false) {
-        $defaults = ['width' => 0.0, 'height' => 0, 'align' => 'L', 'border' => 'LTRB', 'valign' => 'C', 'colAlign' => 'T', 'stretch' => 1];
+        $defaults = ['width' => 0.0, 'height' => 0, 'align' => 'L', 'border' => 'LTRB', 'valign' => 'C', 'colAlign' => 'T', 'stretch' => 0];
         $options = array_merge($defaults, $options);
 
         $w = $options['width'];
@@ -231,14 +231,6 @@ class Pdf extends TCPDF {
         $valign = $options['valign'];
         $colAlign = $options['colAlign'];
         $stretch = $options['stretch'];
-
-        if(isset($options['font'])) {
-            $this->SetFontSettings($options['font']);
-        }
-
-        if(isset($options['padding'])) {
-            $this->SetCellPaddingSettings($options['padding']);
-        }
 
         if($this->checkOverflow == true) {
             $isOverflow = false;
@@ -257,8 +249,16 @@ class Pdf extends TCPDF {
 
             $this->startTransaction();
             $y = $this->GetY();
+            if(isset($options['font'])) {
+                $this->SetFontSettings($options['font']);
+            }
+            if(isset($options['padding'])) {
+                $this->SetCellPaddingSettings($options['padding']);
+            }
             $this->Cell($w, $h, $txt, $border, 1, $align, 1, '', $stretch, false, $colAlign, $valign);
             $cellHeight = $this->GetY() - $y;
+            $this->SetDefaultFontSettings();
+            $this->SetDefaultCellPaddingSettings();
             $this->rollbackTransaction(true);
 
             $isOverflow = $this->GetY() + $cellHeight > $max;
@@ -269,6 +269,12 @@ class Pdf extends TCPDF {
             }
         }
 
+        if(isset($options['font'])) {
+            $this->SetFontSettings($options['font']);
+        }
+        if(isset($options['padding'])) {
+            $this->SetCellPaddingSettings($options['padding']);
+        }
         $this->Cell($w, $h, $txt, $border, $break ? 1 : 0, $align, 0, '', $stretch, false, $colAlign, $valign);
         $this->SetDefaultFontSettings();
         $this->SetDefaultCellPaddingSettings();
