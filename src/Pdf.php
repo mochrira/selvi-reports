@@ -1,9 +1,9 @@
 <?php 
 
-namespace Selvi;
+namespace App\Libraries;
 use TCPDF; 
 
-class Pdf extends TCPDF {
+class Pdf3 extends TCPDF {
 
     private $variables = [];
 
@@ -232,6 +232,20 @@ class Pdf extends TCPDF {
         $colAlign = $options['colAlign'];
         $stretch = $options['stretch'];
 
+        $this->startTransaction();
+        $y = $this->GetY();
+        if(isset($options['font'])) {
+            $this->SetFontSettings($options['font']);
+        }
+        if(isset($options['padding'])) {
+            $this->SetCellPaddingSettings($options['padding']);
+        }
+        $this->Cell($w, $h, $txt, $border, 1, $align, 1, '', $stretch, false, $colAlign, $valign);
+        $cellHeight = $this->GetY() - $y;
+        $this->SetDefaultFontSettings();
+        $this->SetDefaultCellPaddingSettings();
+        $this->rollbackTransaction(true);
+
         if($this->checkOverflow == true) {
             $isOverflow = false;
             $pageStart = $this->getAncestor('pageStart');
@@ -240,26 +254,12 @@ class Pdf extends TCPDF {
 
             if($this->getCurrentAncestor()['type'] == 'masterData') {
                 $this->startTransaction();
-                $y = $this->GetY();
+                $footerY = $this->GetY();
                 $this->printAutoCall('masterFooter');
-                $cellHeight = $this->GetY() - $y;
+                $footerHeight = $this->GetY() - $footerY;
                 $this->rollbackTransaction(true);
-                $max -= $cellHeight;
+                $max -= $footerHeight;
             }
-
-            $this->startTransaction();
-            $y = $this->GetY();
-            if(isset($options['font'])) {
-                $this->SetFontSettings($options['font']);
-            }
-            if(isset($options['padding'])) {
-                $this->SetCellPaddingSettings($options['padding']);
-            }
-            $this->Cell($w, $h, $txt, $border, 1, $align, 1, '', $stretch, false, $colAlign, $valign);
-            $cellHeight = $this->GetY() - $y;
-            $this->SetDefaultFontSettings();
-            $this->SetDefaultCellPaddingSettings();
-            $this->rollbackTransaction(true);
 
             $isOverflow = $this->GetY() + $cellHeight > $max;
             if($isOverflow == true) {
@@ -269,6 +269,17 @@ class Pdf extends TCPDF {
             }
         }
 
+        $this->StartTransform();
+        $rectX = $this->GetX();
+        $rectY = $this->GetY();
+        if($w == 0) {
+            $pageMargins = $this->getMargins();
+            $rectW = $this->getPageWidth() - $pageMargins[2] - $rectX;
+        } else {
+            $rectW = $w;
+        }
+        $rectH = $cellHeight;
+        $this->Rect($rectX, $rectY, $rectW, $rectH, 'CNZ');
         if(isset($options['font'])) {
             $this->SetFontSettings($options['font']);
         }
@@ -278,6 +289,7 @@ class Pdf extends TCPDF {
         $this->Cell($w, $h, $txt, $border, $break ? 1 : 0, $align, 0, '', $stretch, false, $colAlign, $valign);
         $this->SetDefaultFontSettings();
         $this->SetDefaultCellPaddingSettings();
+        $this->StopTransform();
     }
 
 }
