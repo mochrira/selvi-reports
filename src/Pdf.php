@@ -254,6 +254,22 @@ class Pdf extends TCPDF {
         $this->SetDefaultLineStyle();
     }
 
+    private $isRow = false;
+    private $maxRowHeight = 0;
+    private $rowCallbacks = [];
+
+    function startRow() {
+        $this->isRow = true;
+    }
+
+    function endRow() {
+        $this->isRow = false;
+        foreach($this->rowCallbacks as $cb) {
+            $cb($this->maxRowHeight);
+        }
+        $this->rowCallbacks = [];
+    }
+
     function column($txt, $options = [], $break = false) {
         $defaults = [
             'width' => 0, 
@@ -262,7 +278,8 @@ class Pdf extends TCPDF {
             'border' => 'LTRB', 
             'valign' => 'C', 
             'colAlign' => 'T', 
-            'stretch' => 0
+            'stretch' => 0,
+            'multiline' => false
         ];
         $options = array_merge($defaults, $options);
 
@@ -273,12 +290,20 @@ class Pdf extends TCPDF {
         $valign = $options['valign'];
         $colAlign = $options['colAlign'];
         $stretch = $options['stretch'];
+        $multiline = $options['multiline'];
 
         $this->startTransaction();
         $y = $this->GetY();
         $this->formatColumn($options);
-        $this->Cell($w, $h, $txt, $border, 1, $align, 1, '', $stretch, false, $colAlign, $valign);
+        if($multiline) {
+            $this->MultiCell($w, $h, $txt, $border, $align, 0, 1, '', '', true, $stretch, false, true, 0);
+        } else {
+            $this->Cell($w, $h, $txt, $border, 1, $align, 1, '', $stretch, false, $colAlign, $valign);   
+        }
         $cellHeight = $this->GetY() - $y;
+        if($this->isRow && $cellHeight > $this->maxRowHeight) {
+            $this->maxRowHeight = $cellHeight;
+        }
         $this->formatColumnToDefault();
         $this->rollbackTransaction(true);
 
@@ -298,28 +323,40 @@ class Pdf extends TCPDF {
             }
 
             $isOverflow = $this->GetY() + $cellHeight > $max;
-            if($isOverflow == true) {
+            if($isOverflow == true && !$this->isRow) {
                 $this->printAutoCall('masterFooter');
                 $pageStart['callback']($this, $pageStart['args']);
                 $this->printAutoCall('masterHeader');
             }
         }
 
-        $this->StartTransform();
-        $rectX = $this->GetX();
-        $rectY = $this->GetY();
-        if($w == 0) {
-            $pageMargins = $this->getMargins();
-            $rectW = $this->getPageWidth() - $pageMargins[2] - $rectX;
-        } else {
-            $rectW = $w;
+        if(!$this->isRow) {
+            $this->StartTransform();
+            $rectX = $this->GetX();
+            $rectY = $this->GetY();
+            if($w == 0) {
+                $pageMargins = $this->getMargins();
+                $rectW = $this->getPageWidth() - $pageMargins[2] - $rectX;
+            } else {
+                $rectW = $w;
+            }
+            $rectH = $cellHeight;
+            $this->Rect($rectX, $rectY, $rectW, $rectH, 'CNZ');
+            $this->formatColumn($options);
+            if($multiline) {
+                $this->MultiCell($w, $h, $txt, $border, $align, 0, $break ? 1 : 0, '', '', true, $stretch, false, true, 0);
+            } else {
+                $this->Cell($w, $h, $txt, $border, $break ? 1 : 0, $align, 0, '', $stretch, false, $colAlign, $valign);
+            }
+            $this->formatColumnToDefault();
+            $this->StopTransform();
         }
-        $rectH = $cellHeight;
-        $this->Rect($rectX, $rectY, $rectW, $rectH, 'CNZ');
-        $this->formatColumn($options);
-        $this->Cell($w, $h, $txt, $border, $break ? 1 : 0, $align, 0, '', $stretch, false, $colAlign, $valign);
-        $this->formatColumnToDefault();
-        $this->StopTransform();
+
+        if($this->isRow) {
+            $this->rowCallbacks[] = function ($height) use ($txt, $options, $break) {
+                $this->column($txt, array_merge($options, ['height' => $height]), $break);
+            };
+        }
     }
 
 }
