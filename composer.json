@@ -1,5 +1,5 @@
 {
-    "name": "mochrira/selvi-pdf",
+    "name": "mochrira/selvi-report",
     "description": "A library to generate pdf using selvi framework",
     "type": "library",
     "authors": [
