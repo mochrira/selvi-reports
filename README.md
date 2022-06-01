@@ -19,24 +19,28 @@ composer require mochrira/selvi-pdf
         'margins' => ['bottom' => .5, 'top' => .5]
     ]);
 
-    $pdf->pageHeader(function ($pdf) {
-        $pdf->rowStart();
-        $pdf->column('Page Header');
-        $pdf->rowEnd();
-    });
+        $pdf->pageHeader(function ($pdf) {
+            $pdf->rowStart();
+            $pdf->column('Page Header');
+            $pdf->rowEnd();
+        });
 
-    $pdf->band(function ($pdf) {
-        $pdf->rowStart();
-        $pdf->column('Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industrys standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.', ['width' => '50%', 'multiline' => false, 'border' => 1]);
-        $pdf->column('Halo', ['width' => '50%']);
-        $pdf->rowEnd();
-    });
+        $pdf->band(function ($pdf) {
+            $pdf->rowStart();
+            $pdf->column('Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industrys standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.', ['width' => '50%', 'multiline' => false, 'border' => 1]);
+            $pdf->column('Halo', ['width' => '50%']);
+            $pdf->rowEnd();
+        });
 
-    $pdf->pageFooter(function ($pdf) {
-        $pdf->rowStart();
-        $pdf->column('Page '.$pdf->PageNo());
-        $pdf->rowEnd();
-    });
+        $pdf->pageFooter(function ($pdf) {
+            $pdf->rowStart();
+            $pdf->column('Page '.$pdf->PageNo());
+            $pdf->rowEnd();
+        });
+
+    $pdf->pageEnd();
+
+    $pdf->render();
 ?>
 ```
 
