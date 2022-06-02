@@ -9,6 +9,8 @@ $excel->pageSetup([
     'orientation' => 'potrait'
 ]);
 
+$excel->footer('&LTest Footer Left &RTest Footer Right');
+
 $excel->setBold(true);
 $excel->setFontSize(14);
 $excel->rowStart();
@@ -31,12 +33,16 @@ $excel->clearFillColor();
 $excel->clearTextColor();
 $excel->setBold(false);
 
-$excel->rowStart();
-    $excel->column('Inner Width', ['border' => 'b']);
-    $excel->column('Inner Width', ['border' => 'b']);
-    $excel->column('Inner Width', ['border' => 'b']);
-    $excel->column('Inner Width', ['border' => 'b']);
-    $excel->column('Inner Width', ['border' => 'b']);
-$excel->rowEnd();
+$excel->repeatRows(3, 3);
+
+for($i = 1; $i <= 100; $i++) {
+    $excel->rowStart();
+        $excel->column('Inner Width', ['border' => 'b']);
+        $excel->column('Inner Width', ['border' => 'b']);
+        $excel->column('Inner Width', ['border' => 'b']);
+        $excel->column('Inner Width', ['border' => 'b']);
+        $excel->column('Inner Width', ['border' => 'b']);
+    $excel->rowEnd();
+}
 
 $excel->render('test.xlsx');

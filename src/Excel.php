@@ -219,6 +219,20 @@ class Excel {
         $this->currentFontSize = 11;
     }
 
+    function header($formula) {
+        $this->sheet->getHeaderFooter()->setOddHeader($formula);
+        $this->sheet->getHeaderFooter()->setEvenHeader($formula);
+    }
+
+    function footer($formula) {
+        $this->sheet->getHeaderFooter()->setOddFooter($formula);
+        $this->sheet->getHeaderFooter()->setEvenFooter($formula);
+    }
+
+    function repeatRows($start, $end) {
+        $this->sheet->getPageSetup()->setRowsToRepeatAtTopByStartAndEnd($start, $end);
+    }
+
     function render($fileName) {
         $writer = new Xlsx($this->spreadsheet);
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
