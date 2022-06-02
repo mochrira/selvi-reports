@@ -3,7 +3,7 @@
 require __DIR__.'/../vendor/autoload.php';
 require __DIR__.'/../src/Pdf.php';
 
-$pdf = new Selvi\Pdf();
+$pdf = new Selvi\Report\Pdf();
 
 $pdf->pageStart([
     'margins' => ['bottom' => .5, 'top' => .5]
