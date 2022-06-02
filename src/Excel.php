@@ -9,6 +9,7 @@ use PhpOffice\PhpSpreadsheet\Worksheet\PageSetup;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Color;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
 
 class Excel {
 
@@ -76,18 +77,12 @@ class Excel {
         $options = array_merge([
             'width' => null,
             'fill' => 0,
-            'border' => 0
+            'border' => 0,
+            'align' => 'L',
+            'valign' => 'M',
+            'colspan' => 1,
+            'rowspan' => 1
         ], $options);
-
-        // var_dump($options['border']);
-
-        // $l = strpos(strtolower($options['border']), 'l') !== false;
-        // $t = strpos(strtolower($options['border']), 't') !== false;
-        // $r = strpos(strtolower($options['border']), 'r') !== false;
-        // $b = strpos(strtolower($options['border']), 'b') !== false;
-
-        // var_dump($l, $t, $r, $b);
-        // die();
 
         $colName = $this->getColumnLetter($this->x);
 
@@ -136,8 +131,52 @@ class Excel {
             }
         }
 
+        $align = 'left';
+        switch(strtolower($options['align'])) {
+            case 'r' : $align = 'right'; break;
+            case 'c' : $align = 'center'; break;
+            default : $align = 'left'; break;
+        }
+        $this->sheet->getStyle($coordinate)->getAlignment()->setHorizontal($align);
+
+        $valign = 'center';
+        switch(strtolower($options['valign'])) {
+            case 't' : $valign = 'top'; break;
+            case 'b' : $valign = 'bottom'; break;
+            default : $valign = 'center'; break;
+        }
+        $this->sheet->getStyle($coordinate)->getAlignment()->setVertical($valign);
+
+        if($options['colspan'] > 1 && $options['rowspan'] > 1) {
+            $start = $coordinate;
+            $stopCol = $this->getColumnLetter($this->x + ($options['colspan'] - 1));
+            $stopRow = ($this->y + 1) + ($options['rowspan'] - 1);
+            $stop = $stopCol.$stopRow;
+            $this->sheet->mergeCells($start.':'.$stop);
+            $this->x += ($options['colspan'] - 1);
+        } else {
+            if($options['colspan'] > 1) {
+                $start = $coordinate;
+                $stop = $this->getColumnLetter($this->x + ($options['colspan'] - 1)).($this->y + 1);
+                $this->sheet->mergeCells($start.':'.$stop);
+                $this->x += ($options['colspan'] - 1);
+            }
+    
+            if($options['rowspan'] > 1) {
+                $this->sheet->mergeCells($colName.($this->y + 1).':'.$colName.(($this->y + 1) + ($options['rowspan'] - 1)));
+            }
+        }
+
         $this->sheet->setCellValue($coordinate, $txt);
         $this->x++;
+    }
+
+    function skipColumn() {
+        $this->x++;
+    }
+
+    function skipRow() {
+        $this->y++;
     }
 
     function rowEnd() {
