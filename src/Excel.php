@@ -167,6 +167,8 @@ class Excel {
             }
         }
 
+        $this->sheet->getStyle($coordinate)->getFont()->setSize($this->currentFontSize);
+
         $this->sheet->setCellValue($coordinate, $txt);
         $this->x++;
     }
@@ -207,6 +209,16 @@ class Excel {
 
     function setBold($bold) {
         $this->currentBoldState = $bold;
+    }
+
+    private $currentFontSize = 11;
+
+    function setFontSize($size) {
+        $this->currentFontSize = $size;
+    }
+
+    function restoreFontSize() {
+        $this->currentFontSize = 11;
     }
 
     function render($fileName) {
