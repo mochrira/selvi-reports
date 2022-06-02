@@ -5,8 +5,25 @@ namespace Selvi\Report;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\Worksheet\PageSetup;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Color;
 
 class Excel {
+
+    private $paperMap = [
+        'A4' => [
+            'code' => PageSetup::PAPERSIZE_A4,
+            'width' => 8.27,
+            'height' => 11.69
+        ]
+    ];
+
+    private $orientationMap = [
+        'portrait' => PageSetup::ORIENTATION_PORTRAIT,
+        'landscape' => PageSetup::ORIENTATION_LANDSCAPE
+    ];
 
     private $spreadsheet;
     private $sheet;
@@ -16,25 +33,141 @@ class Excel {
         $this->sheet = $this->spreadsheet->getActiveSheet();
     }
 
-    private function getColumnLetter($x, $y) {
-        return Coordinate::stringFromColumnIndex($x + 1).($y + 1);
-    }
-
     private $x = 0;
     private $y = 0;
+
+    private $pageMargins = ['top' => .5, 'left' => .5, 'bottom' => .5, 'right' => .5];
+    private $pageOptions = ['orientation' => 'portrait', 'size' => 'A4'];
+
+    function pageSetup($options) {
+        $this->pageMargins = array_merge($this->pageMargins, $options['margin'] ?? []);
+        if(isset($this->pageMargins['top'])) $this->sheet->getPageMargins()->setTop($this->pageMargins['top']);
+        if(isset($this->pageMargins['left'])) $this->sheet->getPageMargins()->setLeft($this->pageMargins['left']);
+        if(isset($this->pageMargins['right'])) $this->sheet->getPageMargins()->setRight($this->pageMargins['right']);
+        if(isset($this->pageMargins['bottom'])) $this->sheet->getPageMargins()->setBottom($this->pageMargins['bottom']);
+
+        $this->pageOptions = array_merge($this->pageOptions, $options);
+        $this->sheet->getPageSetup()->setOrientation($this->orientationMap[$this->pageOptions['orientation']]);
+        $this->sheet->getPageSetup()->setPaperSize($this->paperMap[$this->pageOptions['size']]['code']);
+    }
+
+    function getInnerWidth() {
+        $orientation = $this->pageOptions['orientation'];
+        $paper = $this->paperMap[$this->pageOptions['size']];
+        $width = ($orientation == 'landscape' ? $paper['height'] : $paper['width']);
+        return $width - ($this->pageMargins['left'] + $this->pageMargins['right']);
+    }
+
+    private $tolerance = .79;
+
+    function getPercentWidth($percent) {
+        return ((float)$percent / 100 * ($this->getInnerWidth() - $this->tolerance));
+    }
+
+    private function getColumnLetter($x) {
+        return Coordinate::stringFromColumnIndex($x + 1);
+    }
 
     function rowStart() {
         $this->x = 0;
     }
 
     function column($txt, $options = []) {
-        $col = $this->getColumnLetter($this->x, $this->y);
-        $this->sheet->setCellValue($col, $txt);
+        $options = array_merge([
+            'width' => null,
+            'fill' => 0,
+            'border' => 0
+        ], $options);
+
+        // var_dump($options['border']);
+
+        // $l = strpos(strtolower($options['border']), 'l') !== false;
+        // $t = strpos(strtolower($options['border']), 't') !== false;
+        // $r = strpos(strtolower($options['border']), 'r') !== false;
+        // $b = strpos(strtolower($options['border']), 'b') !== false;
+
+        // var_dump($l, $t, $r, $b);
+        // die();
+
+        $colName = $this->getColumnLetter($this->x);
+
+        if($options['width'] != null) {
+            if($options['width'] == 'auto') {
+                $this->sheet->getColumnDimension($colName)->setAutoSize(true);
+            } else {
+                if(strpos($options['width'], '%') !== false) {
+                    $this->sheet->getColumnDimension($colName)->setWidth($this->getPercentWidth($options['width']), 'in');
+                } else {
+                    if($options['width'] == 0) {
+                        $this->sheet->getColumnDimension($colName)->setWidth($this->getInnerWidth() - $this->tolerance, 'in');
+                    } else {
+                        $this->sheet->getColumnDimension($colName)->setWidth($options['width'], 'in');
+                    }
+                }
+            }
+        }
+
+        $coordinate = $colName.($this->y + 1);
+        if($options['fill'] == 1) {
+            if($this->currentFillColor !== null) {
+                $this->sheet->getStyle($coordinate)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB($this->currentFillColor);
+            }
+        }
+
+        if($this->currentTextColor !== null) {
+            $this->sheet->getStyle($coordinate)->getFont()->getColor()->setARGB($this->currentTextColor);
+        }
+
+        $this->sheet->getStyle($coordinate)->getFont()->setBold($this->currentBoldState);
+
+        if($options['border'] !== 0) {
+            $l = strpos(strtolower($options['border']), 'l') !== false;
+            $t = strpos(strtolower($options['border']), 't') !== false;
+            $r = strpos(strtolower($options['border']), 'r') !== false;
+            $b = strpos(strtolower($options['border']), 'b') !== false;
+            
+            if($l && $t && $r && $b) {
+                $this->sheet->getStyle($coordinate)->getBorders()->getOutline()->setBorderStyle(Border::BORDER_THIN)->setColor(new Color('FF000000'));
+            } else {
+                if($l) $this->sheet->getStyle($coordinate)->getBorders()->getLeft()->setBorderStyle(Border::BORDER_THIN)->setColor(new Color('FF000000'));
+                if($t) $this->sheet->getStyle($coordinate)->getBorders()->getTop()->setBorderStyle(Border::BORDER_THIN)->setColor(new Color('FF000000'));
+                if($r) $this->sheet->getStyle($coordinate)->getBorders()->getRight()->setBorderStyle(Border::BORDER_THIN)->setColor(new Color('FF000000'));
+                if($b) $this->sheet->getStyle($coordinate)->getBorders()->getBottom()->setBorderStyle(Border::BORDER_THIN)->setColor(new Color('FF000000'));
+            }
+        }
+
+        $this->sheet->setCellValue($coordinate, $txt);
         $this->x++;
     }
 
     function rowEnd() {
         $this->y++;
+    }
+
+    private $currentFillColor = null;
+
+    function setFillColor($r, $g, $b) {
+        $this->currentFillColor = sprintf("FF%02x%02x%02x", $r, $g, $b);
+    }
+
+    function clearFillColor() {
+        $this->currentFillColor = null;
+    }
+
+    private $currentTextColor = null;
+
+    function setTextColor($r, $g, $b) {
+        $this->currentTextColor = sprintf("FF%02x%02x%02x", $r, $g, $b);
+    }
+
+    function clearTextColor() {
+        $this->currentTextColor = null;
+    }
+
+    private $currentBoldState = false;
+
+    function setBold($bold) {
+        $this->currentBoldState = $bold;
     }
 
     function render($fileName) {
