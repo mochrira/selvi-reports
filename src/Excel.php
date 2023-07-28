@@ -102,7 +102,12 @@ class Excel {
         }
 
         $coordinate = $colName.($this->y + 1);
-        $this->sheet->setCellValue($coordinate, $txt);
+        if(isset($options['type'])) {
+            $this->sheet->setCellValueExplicit($coordinate, $txt, $options['type']);
+        } else {
+            $this->sheet->setCellValue($coordinate, $txt);
+        }
+
         $this->sheet->getStyle($coordinate)->getFont()->setSize($this->currentFontSize);
         $this->sheet->getStyle($coordinate)->getFont()->setBold($this->currentBoldState);
         if($this->currentTextColor !== null) $this->sheet->getStyle($coordinate)->getFont()->getColor()->setARGB($this->currentTextColor);

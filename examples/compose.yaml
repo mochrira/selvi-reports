@@ -1,0 +1,11 @@
+name: selvi_report
+version: '3.0'
+services:
+  backend:
+    container_name: selvi_report_container
+    image: mochrira/php:7.4.33-nginx
+    volumes:
+      - ./:/home/php/www
+      - ../src:/home/php/src
+    ports:
+      - 8092:80

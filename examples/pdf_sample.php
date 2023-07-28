@@ -1,6 +1,6 @@
 <?php 
 
-require __DIR__.'/../vendor/autoload.php';
+require __DIR__.'/vendor/autoload.php';
 require __DIR__.'/../src/Pdf.php';
 
 $pdf = new Selvi\Report\Pdf();

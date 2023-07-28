@@ -1,0 +1,12 @@
+{
+    "name": "selvi-reports/example",
+    "autoload": {
+        "psr-4": {
+            "Selvi\\Reports\\": "../src"
+        }
+    },
+    "require": {
+        "tecnickcom/tcpdf": "^6.6",
+        "phpoffice/phpspreadsheet": "^1.29"
+    }
+}
