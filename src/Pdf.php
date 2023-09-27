@@ -176,6 +176,8 @@ class Pdf extends TCPDF {
         ];
     }
 
+    function _masterStart() {}
+
     function masterHeader($callback = null) {
         $this->components[] = [
             'name' => 'masterHeader', 
@@ -214,6 +216,8 @@ class Pdf extends TCPDF {
             'name' => 'masterEnd'
         ];
     }
+
+    function _masterEnd() {}
 
     function _detectPageBreak($callback, $comIndex) {
         $isBreak = false;
@@ -276,9 +280,11 @@ class Pdf extends TCPDF {
             $options['width'] = (strpos($options['width'], '%') === false ? ($options['width'] == 0 ? $this->getPageInnerWidth() : $options['width']) : $this->percentWidth($options['width']));
         }
 
+        // error_log('Width : '.$options['width']."\n");
+
         if($options['multiline'] == true) {
             $this->MultiCell(
-                $options['width'], // width
+                round($options['width'], 2), // width
                 $options['height'], // height
                 $txt, // content
                 $options['border'], // border
@@ -290,10 +296,10 @@ class Pdf extends TCPDF {
         } else {
             if(!$this->simulation) {
                 $this->StartTransform();
-                $this->Rect($this->GetX(), $this->GetY(), $options['width'], $options['height'], 'CNZ', 'LTRB');
+                $this->Rect($this->GetX(), $this->GetY(), round($options['width'], 2), $options['height'], 'CNZ');
             }
             $this->Cell(
-                $options['width'], // width
+                round($options['width'], 2), // width
                 $options['height'], // height
                 $txt, // content
                 $options['border'], // border
@@ -342,14 +348,14 @@ class Pdf extends TCPDF {
     function _render() {
         foreach($this->components as $index => $component) {
             if(!in_array($component['name'], ['pageHeader', 'pageFooter'])) {
-                call_user_func_array([$this, '_'.$component['name']], array_merge($component['args'], [$index]));
+                call_user_func_array([$this, '_'.$component['name']], array_merge($component['args'] ?? [], [$index]));
             }
         }
     }
 
-    function render($name = 'download.pdf') {
+    function render($name = 'download.pdf', $mode = 'I') {
         $this->_render();
-        $this->Output($name, 'I');
+        $this->Output($name, $mode);
         die();
     }
 }
