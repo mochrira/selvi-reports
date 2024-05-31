@@ -3,9 +3,9 @@ version: '3.0'
 services:
   backend:
     container_name: selvi_report_container
-    image: mochrira/php:7.4.33-apache
+    image: mochrira/dev:latest
     volumes:
-      - ./:/var/www/html
-      - ../src:/var/www/src
+      - ./:/workspace/www
+      - ../src:/workspace/src
     ports:
       - 8092:80

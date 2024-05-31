@@ -96,7 +96,7 @@ class Pdf extends TCPDF {
 
         $this->setAutoPageBreak(false);
         $this->AddPage($pageArgs['orientation'], $pageArgs['size']);
-        $this->SetY(0);
+        $this->SetY($pageArgs['margins']['top']);
         $this->_pageHeader($comIndex);
     }
 
@@ -126,6 +126,7 @@ class Pdf extends TCPDF {
         }
 
         if($pageHeader) {
+            $this->SetY(0);
             $pageHeader['callback']($this);
             $this->Ln();
         }
@@ -149,7 +150,7 @@ class Pdf extends TCPDF {
 
         if($pageFooter) {
             $pageStart = $this->getNearestTop('pageStart', $comIndex);
-            $y = $this->getPageHeight() - $pageStart['margins']['bottom'];
+            $y = ((float)$this->getPageHeight()) - ($pageStart['margins']['bottom'] ?? 0);
             $this->SetY($y);
             $pageFooter['callback']($this);
             $this->Ln();
