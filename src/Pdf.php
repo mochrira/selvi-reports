@@ -12,7 +12,9 @@ class Pdf extends TCPDF {
     private $simulationLock = false;
     private $simulation = false;
 
-    function __construct() {}
+    function __construct() {
+        
+    }
 
     function startSimulation($lock = false) {
         if($this->simulation === false) {
@@ -76,6 +78,10 @@ class Pdf extends TCPDF {
             'name' => 'pageStart',
             'args' => [$args]
         ];
+    }
+
+    function getFeps() {
+        return $this->feps;
     }
 
     function _pageStart($args = [], $comIndex = null) {
@@ -281,8 +287,6 @@ class Pdf extends TCPDF {
             $options['width'] = (strpos($options['width'], '%') === false ? ($options['width'] == 0 ? $this->getPageInnerWidth() : $options['width']) : $this->percentWidth($options['width']));
         }
 
-        // error_log('Width : '.$options['width']."\n");
-
         if($options['multiline'] == true) {
             $this->MultiCell(
                 round($options['width'], 2), // width
@@ -299,6 +303,7 @@ class Pdf extends TCPDF {
                 $this->StartTransform();
                 $this->Rect($this->GetX(), $this->GetY(), round($options['width'], 2), $options['height'], 'CNZ');
             }
+
             $this->Cell(
                 round($options['width'], 2), // width
                 $options['height'], // height
@@ -307,15 +312,16 @@ class Pdf extends TCPDF {
                 $break ? 1 : 0, // break
                 $options['align'], // align
                 $options['fill'], // fill
-                '',  // link
+                '', // link
                 0, // stretch
                 false, // ignore_min_height
                 'T', // calign
                 $options['valign'] // valign
             );
+
             if($this->simulation && !$this->simulationLock) $options['height'] = $this->GetLastH(); 
             if(!$this->simulation) {
-                $this->StopTransform();   
+                $this->StopTransform();
             }
         }
 

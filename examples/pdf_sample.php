@@ -8,7 +8,8 @@ use Selvi\Report\Pdf;
 $pdf = new Pdf();
 
 $pdf->pageStart([
-    'margins' => ['bottom' => 1, 'top' => 1]
+    'size' => [8.27,  11.69],
+    'margins' => ['bottom' => 1, 'top' => 1, 'left' => 0.635, 'right' => .635]
 ]);
 
     $pdf->pageHeader(function (Pdf $pdf) {
@@ -31,28 +32,61 @@ $pdf->pageStart([
         //     $pdf->rowEnd();
         // });
 
-        $pdf->masterStart();
-            $pdf->masterHeader(function ($pdf) {
-                $pdf->rowStart();
-                $pdf->column('Master Header 1');
-                $pdf->rowEnd();
-            });
+        $pdf->band(function (Pdf $pdf) {
+            $pdf->rowStart();
+                $pdf->column('Halo', ['border' => 1, 'width' => $pdf->getPageInnerWidth()]);
+            $pdf->rowEnd();
+        });
 
-            for($i=1; $i<=125; $i++) {
-                $pdf->masterBand(function ($pdf) use ($i) {
-                    $pdf->rowStart();
-                    $pdf->column('Master Band 1 - '.$i);
-                    $pdf->rowEnd();
-                });
-            }
+        $pdf->band(function (Pdf $pdf) {
+            // $colWidth = 2.4225740740741;
+            $colWidth = $pdf->getPageInnerWidth() / 10;
 
-            $pdf->band(function ($pdf) use ($i) {
-                $pdf->rowStart();
-                $pdf->column('Band Footer 1 uses Generic Band '.$i);
-                $pdf->rowEnd();
-                $pdf->Ln();
-            });
-        $pdf->masterEnd();
+            /**
+             * 3 => + 1
+             * 5 => + 2
+             * 6 => + 1
+             * 7 => - 1
+             * 8 => - 1
+             * 9 => - 2
+             */
+
+            $pdf->rowStart();
+                $pdf->column('Halo', ['border' => 1, 'width' => $colWidth]);
+                $pdf->column('Halo', ['border' => 1, 'width' => $colWidth]);
+                $pdf->column('Halo', ['border' => 1, 'width' => $colWidth]);
+                $pdf->column('Halo', ['border' => 1, 'width' => $colWidth]);
+                $pdf->column('Halo', ['border' => 1, 'width' => $colWidth]);
+                $pdf->column('Halo', ['border' => 1, 'width' => $colWidth]);
+                $pdf->column('Halo', ['border' => 1, 'width' => $colWidth]);
+                $pdf->column('Halo', ['border' => 1, 'width' => $colWidth]);
+                $pdf->column('Halo', ['border' => 1, 'width' => $colWidth]);
+                $pdf->column('Halo', ['border' => 1, 'width' => $colWidth]);
+            $pdf->rowEnd();
+        });
+
+        // $pdf->masterStart();
+        //     $pdf->masterHeader(function ($pdf) {
+        //         $pdf->rowStart();
+        //         $pdf->column('Master Header 1');
+        //         $pdf->rowEnd();
+        //     });
+
+        //     for($i=1; $i<=125; $i++) {
+        //         $pdf->masterBand(function ($pdf) use ($i) {
+        //             $pdf->rowStart();
+        //             $pdf->column('Master Band 1 - '.$i);
+        //             $pdf->rowEnd();
+        //         });
+        //     }
+
+        //     $pdf->band(function ($pdf) use ($i) {
+        //         $pdf->rowStart();
+        //         $pdf->column('Band Footer 1 uses Generic Band '.$i);
+        //         $pdf->rowEnd();
+        //         $pdf->Ln();
+        //     });
+        // $pdf->masterEnd();
 
         // $pdf->masterStart();
         //     $pdf->masterHeader(function ($pdf) {

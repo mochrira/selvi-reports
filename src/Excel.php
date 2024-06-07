@@ -34,6 +34,10 @@ class Excel {
         $this->sheet = $this->spreadsheet->getActiveSheet();
     }
 
+    function getSpreadsheet() {
+        return $this->spreadsheet;
+    }
+
     private $x = 0;
     private $y = 0;
 
