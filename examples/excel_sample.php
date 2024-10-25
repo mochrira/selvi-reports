@@ -1,9 +1,9 @@
 <?php 
 
 require __DIR__.'/vendor/autoload.php';
-require __DIR__.'/../src/Excel.php';
+require __DIR__.'/../src/Excel_old.php';
 
-$excel = new Selvi\Report\Excel();
+$excel = new Selvi\Report\Excel_old;
 
 $excel->pageSetup([
     'orientation' => 'potrait'
