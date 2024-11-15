@@ -1,5 +1,4 @@
 name: selvi_report
-version: '3.0'
 services:
   backend:
     container_name: selvi_report_container

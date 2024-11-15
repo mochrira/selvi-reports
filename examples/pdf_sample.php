@@ -51,16 +51,18 @@ $pdf->pageStart([
              * 9 => - 2
              */
 
+            $pdf->setTextColor(255, 0, 0);
+
             $pdf->rowStart();
+                $pdf->column('Halo Test Color', ['multiline' => true, 'border' => 1, 'width' => $colWidth, 'color' => [100, 100, 100]]);
                 $pdf->column('Halo', ['border' => 1, 'width' => $colWidth]);
+                $pdf->column('Halo', ['border' => 1, 'width' => $colWidth, 'color' => [100, 100, 100]]);
                 $pdf->column('Halo', ['border' => 1, 'width' => $colWidth]);
+                $pdf->column('Ini adalah sebuah kolom dengan konten super panjang, namun semua kolom selain ini akan menyesuaikan', ['multiline' => true, 'border' => 1, 'width' => $colWidth, 'color' => [100, 100, 100]]);
                 $pdf->column('Halo', ['border' => 1, 'width' => $colWidth]);
+                $pdf->column('Halo', ['border' => 1, 'width' => $colWidth, 'color' => [100, 100, 100]]);
                 $pdf->column('Halo', ['border' => 1, 'width' => $colWidth]);
-                $pdf->column('Halo', ['border' => 1, 'width' => $colWidth]);
-                $pdf->column('Halo', ['border' => 1, 'width' => $colWidth]);
-                $pdf->column('Halo', ['border' => 1, 'width' => $colWidth]);
-                $pdf->column('Halo', ['border' => 1, 'width' => $colWidth]);
-                $pdf->column('Halo', ['border' => 1, 'width' => $colWidth]);
+                $pdf->column('Halo', ['border' => 1, 'width' => $colWidth, 'color' => [100, 100, 100]]);
                 $pdf->column('Halo', ['border' => 1, 'width' => $colWidth]);
             $pdf->rowEnd();
         });

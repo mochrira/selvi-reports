@@ -280,22 +280,30 @@ class Pdf extends TCPDF {
             'valign' => 'M',
             'multiline' => false,
             'border' => 0,
-            'fill' => 0
+            'fill' => 0,
+            'color' => null
         ], $options);
 
         if($this->simulation && !$this->simulationLock) { 
             $options['width'] = (strpos($options['width'], '%') === false ? ($options['width'] == 0 ? $this->getPageInnerWidth() : $options['width']) : $this->percentWidth($options['width']));
         }
 
+        $currentColor = $this->fgcolor;
+        if($options['color'] != null) {
+            $this->setTextColor($options['color'][0], $options['color'][1], $options['color'][2]);
+        }
+
         if($options['multiline'] == true) {
             $this->MultiCell(
-                round($options['width'], 2), // width
-                $options['height'], // height
-                $txt, // content
-                $options['border'], // border
-                $options['align'], 
-                $options['fill'], // fill
-                $break ? 1 : 0 // break
+                w: round($options['width'], 2), // width
+                h: $options['height'], // height
+                txt: $txt, // content
+                border: $options['border'], // border
+                align: $options['align'], 
+                fill: $options['fill'], // fill
+                ln: $break ? 1 : 0, // break
+                valign: $options['valign'],
+                maxh: $options['height']
             );
             if($this->simulation && !$this->simulationLock) $options['height'] = $this->GetLastH();
         } else {
@@ -328,6 +336,8 @@ class Pdf extends TCPDF {
         if($this->simulation && !$this->simulationLock) {
             $this->cols[] = [$txt, $options, $break];
         }
+
+        $this->setTextColor($currentColor['R'], $currentColor['G'], $currentColor['B']);
     }
 
     function rowEnd() {
